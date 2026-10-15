@@ -49,6 +49,24 @@ The agent log (bottom left) streams what every bot is "thinking". That stream is
 - **Shitpost**: farms followers, no market effect.
 - Selling more than 30% within 120 s of your own call is a dump on your followers: trust and followers drop, and the replies turn on you.
 
+## Trust
+
+Trust (0–100, start 50) scales follower power: `0.25 + trust/100`, so 90 trust hits about 3.3× harder than 10.
+
+| Event | Trust |
+|---|---|
+| Call prints (≥1.3× within 5 game min), whether you sell or not | +3 |
+| Call flops (<0.6× after 60 s) | −3 |
+| Sell >30% of what you held at call time within 2 min (any mix of sells, drills and wallet sells, once per call) | −(6 + 10·frac)·template cringe |
+| Called coin dies with your followers rekt | −min(8, rekt/4) |
+| Bundle exposed by a sleuth | −8 |
+| FUD right / wrong | +6 / −7 |
+| Fresh shitpost | +0.5 |
+| Bribe backfires | −12 |
+| Kicked from the cabal | −10 |
+| Paid shill dies / gets exposed | −6 / −10 more |
+| Passive | drifts toward 50 (~0.02% of the gap per tick) |
+
 ## Launch and bundle
 
 The inputs are name, ticker, emoji or image, supply % (0–70), wallets (1–20), Jito tip and a fresh-funding toggle. A live `$ pump deploy …` command line previews the deploy.

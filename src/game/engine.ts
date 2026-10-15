@@ -358,10 +358,12 @@ function kill(w: World, c: Coin) {
   const involved = pos.tokens > 0 || c.byPlayer || c.pc.calls > 0
   if (rektCall > 0 && c.pc.calls > 0) {
     const xp = rektCall * 8
+    const lostTrust = Math.min(8, Math.round(rektCall * 0.25))
     p.stats.rekt += rektCall
     p.xp += xp
+    p.trust = clamp(p.trust - lostTrust, 0, 100)
     chatSend(w, 'fans', 'them', pick(L.FAN_REKT).replace('{T}', tk(c)), rand(800, 3000), `anon_${randInt(100, 9999)}`)
-    toast('xp', `+${xp} XP · ${rektCall} followers rekt`, `You turned ${rektCall} people who believed you into exit liquidity.`)
+    toast('xp', `+${xp} XP · ${rektCall} followers rekt`, `You turned ${rektCall} people who believed you into exit liquidity.${lostTrust ? ` -${lostTrust} trust.` : ''}`)
     if (p.stats.rekt >= 47) unlock(w, 'rekt47')
   }
   if (pos.tokens > 0 && pos.cost > 0.01) {
@@ -647,10 +649,39 @@ function engagement(w: World) {
   }
 }
 
+/** judge each open call on the clock, whether or not you ever sell */
+function callOutcomes(w: World) {
+  const p = w.player
+  for (const c of Object.values(w.coins)) {
+    const pc = c.pc
+    if (pc.callAt == null || pc.callRewarded || !pc.callMc) continue
+    const age = w.t - pc.callAt
+    const mc = mcUsd(c)
+    if (age >= 30 && mc >= pc.callMc * 1.3) {
+      pc.callRewarded = true
+      const gain = Math.round(followerPower(p) * rand(30, 90))
+      p.trust = clamp(p.trust + 3, 0, 100)
+      p.followers += gain
+      if (silent) continue
+      chatSend(w, 'fans', 'them', pick(L.FAN_GOOD).replace('{T}', tk(c)), rand(1500, 4000), `anon_${randInt(100, 9999)}`)
+      toast('good', `your ${tk(c)} call printed · +3 trust`, `+${gain} followers. now sell into it before it doesn't.`)
+    } else if (age > 300 || c.status === 'dead' || (age > 60 && mc < pc.callMc * 0.6)) {
+      pc.callRewarded = true
+      if (mc < pc.callMc * 0.6) {
+        p.trust = clamp(p.trust - 3, 0, 100)
+        if (!silent) toast('bad', `your ${tk(c)} call flopped · -3 trust`, 'followers are taking notes.')
+      }
+    }
+  }
+}
+
 function playerPassive(w: World) {
   const p = w.player
   if (p.sol > p.stats.peakSol) p.stats.peakSol = p.sol
   if (chance(0.05)) p.followers += randInt(0, 2)
+  // reputation is sticky but not permanent: drifts back toward neutral over a few game hours
+  p.trust = clamp(p.trust + (50 - p.trust) * 0.0002, 0, 100)
+  callOutcomes(w)
   if (Math.floor(w.t / SEC_PER_TICK) % 4 !== 0) return
   if (p.followers >= 10000) unlock(w, 'kol')
   if (p.sol >= 100) unlock(w, 'whale')

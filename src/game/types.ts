@@ -149,7 +149,12 @@ export interface PlayerCoinMeta {
   scanned: boolean
   lastPostAt: number[]
   cringe?: number
+  /** call outcome has been judged (printed, flopped, or dumped on) */
   callRewarded?: boolean
+  /** tokens you held when you posted the call, and how many you've sold since */
+  callTokens?: number
+  callSold?: number
+  callDumped?: boolean
   paidShill?: boolean
   firstBuyAt?: number
   soldCost?: number

@@ -64,11 +64,13 @@ export function sell(w: World, coinId: string, frac: number, drill = false): Sel
   onPlayerSell(w, c)
   let solOut = 0
   let costOut = 0
+  const tokensBefore = playerPosition(c).tokens
   for (const h of hs) {
     const r = execSell(w, c, h.id, frac >= 0.999 ? h.tokens : h.tokens * frac)
     solOut += r.sol
     costOut += r.cost
   }
+  const tokensSold = tokensBefore - playerPosition(c).tokens
   c.pc.soldCost = (c.pc.soldCost ?? 0) + costOut
   c.pc.soldSol = (c.pc.soldSol ?? 0) + solOut
   const pnl = solOut - costOut
@@ -117,28 +119,8 @@ export function sell(w: World, coinId: string, frac: number, drill = false): Sel
   bookSell(w, c, pnl, x, xp)
   mark(w, c, drill ? 'D' : 'S')
 
-  // reputation: dumping on your own call
-  if (sinceCall < 120 && frac > 0.3 && c.pc.calls > 0) {
-    const cringe = c.pc.cringe ?? 1
-    const lostTrust = Math.round((6 + frac * 10) * cringe)
-    const lostF = Math.round(p.followers * rand(0.03, 0.08) * frac * cringe)
-    p.trust = clamp(p.trust - lostTrust, 0, 100)
-    p.followers = Math.max(10, p.followers - lostF)
-    p.stats.dumpedOwnCall++
-    unlock(w, 'own_call')
-    notes.push(`dumped on own call: -${lostTrust} trust, -${lostF} followers`)
-    const callPost = w.feed.find((x) => x.author === 'player' && x.coinId === c.id && x.kind === 'call')
-    if (callPost) queueReply(w, callPost, L.R_DUMP_OWN, randInt(2, 4), { H: p.handle, T: tk(c), S: Math.round(sinceCall) }, 2, 20)
-    chatSend(w, 'fans', 'them', pick(L.FAN_DUMP).replace('{T}', tk(c)), rand(1500, 4000), `anon_${randInt(100, 9999)}`)
-    log(w, 'follower-swarm', `@${p.handle} sold ${tk(c)} ${Math.round(sinceCall)}s after calling it. ${lostF} unfollows.`, 'r')
-  } else if (c.pc.callAt != null && !c.pc.callRewarded && c.pc.callMc && mcUsd(c) > c.pc.callMc * 1.3) {
-    c.pc.callRewarded = true
-    const gain = Math.round(followerPower(p) * rand(30, 90))
-    p.trust = clamp(p.trust + 3, 0, 100)
-    p.followers += gain
-    notes.push(`call printed: +${gain} followers`)
-    chatSend(w, 'fans', 'them', pick(L.FAN_GOOD).replace('{T}', tk(c)), rand(1500, 4000), `anon_${randInt(100, 9999)}`)
-  }
+  const dumpNote = checkDumpOnCall(w, c, tokensSold)
+  if (dumpNote) notes.push(dumpNote)
 
   if (drill) {
     p.stats.drills++
@@ -157,6 +139,35 @@ export function sell(w: World, coinId: string, frac: number, drill = false): Sel
   exReact(w, pnl)
   if (playerPosition(c).tokens <= 0) recordFlex(w, c, drill)
   return { sol: solOut, pnl, xp, notes }
+}
+
+/**
+ * Dumping on your own call: once more than 30% of what you held at call time is sold
+ * within 2 minutes (any mix of sells, drills or single-wallet sells), trust takes the hit. Once per call.
+ */
+function checkDumpOnCall(w: World, c: Coin, tokensSold: number): string | null {
+  const pc = c.pc
+  const p = w.player
+  if (pc.callAt == null || pc.callDumped || !pc.callTokens || tokensSold <= 0) return null
+  const since = w.t - pc.callAt
+  if (since >= 120) return null
+  pc.callSold = (pc.callSold ?? 0) + tokensSold
+  const frac = Math.min(1, pc.callSold / pc.callTokens)
+  if (frac <= 0.3) return null
+  pc.callDumped = true
+  pc.callRewarded = true // a dumped call can't also "print"
+  const cringe = pc.cringe ?? 1
+  const lostTrust = Math.round((6 + frac * 10) * cringe)
+  const lostF = Math.round(p.followers * rand(0.03, 0.08) * frac * cringe)
+  p.trust = clamp(p.trust - lostTrust, 0, 100)
+  p.followers = Math.max(10, p.followers - lostF)
+  p.stats.dumpedOwnCall++
+  unlock(w, 'own_call')
+  const callPost = w.feed.find((x) => x.author === 'player' && x.coinId === c.id && x.kind === 'call')
+  if (callPost) queueReply(w, callPost, L.R_DUMP_OWN, randInt(2, 4), { H: p.handle, T: tk(c), S: Math.round(since) }, 2, 20)
+  chatSend(w, 'fans', 'them', pick(L.FAN_DUMP).replace('{T}', tk(c)), rand(1500, 4000), `anon_${randInt(100, 9999)}`)
+  log(w, 'follower-swarm', `@${p.handle} sold ${tk(c)} ${Math.round(since)}s after calling it. ${lostF} unfollows.`, 'r')
+  return `dumped on own call: -${lostTrust} trust, -${lostF} followers`
 }
 
 /** bookkeeping shared by every player sell path */
@@ -204,7 +215,10 @@ export function sellWallet(w: World, coinId: string, walletId: string) {
   if (!c || !h || h.tokens <= 0) return
   if (txFails(w)) return
   onPlayerSell(w, c)
+  const sold = h.tokens
   const { sol, cost } = execSell(w, c, walletId, h.tokens)
+  const dumpNote = checkDumpOnCall(w, c, sold)
+  if (dumpNote) toast('bad', 'dumped on your own call', dumpNote)
   c.pc.soldCost = (c.pc.soldCost ?? 0) + cost
   c.pc.soldSol = (c.pc.soldSol ?? 0) + sol
   const pnl = sol - cost
@@ -358,6 +372,9 @@ export function post(w: World, mode: PostMode, text: string, coinId?: string, tp
     c.pc.callSol = 0
     c.pc.cringe = tpl?.cringe ?? 1
     c.pc.callRewarded = false
+    c.pc.callTokens = playerPosition(c).tokens
+    c.pc.callSold = 0
+    c.pc.callDumped = false
     p.stats.calls++
     mark(w, c, 'C')
     const pp = addPost(w, 'player', text, { coinId: c.id, kind: 'call', targetLikes: p.followers * rand(0.01, 0.04) * (0.5 + p.trust / 100) })
