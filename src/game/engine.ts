@@ -1,4 +1,4 @@
-import { CANDLE_SEC, MAX_DEAD, MAX_LIVE, SEC_PER_TICK, START_FOLLOWERS, START_SOL, START_TRUST } from './constants'
+﻿import { CANDLE_SEC, MAX_DEAD, MAX_LIVE, SEC_PER_TICK, START_FOLLOWERS, START_SOL, START_TRUST } from './constants'
 import { generateIdentity, type CoinIdentity } from './data/coins'
 import { BOTS, BOT_BY_ID, LEADERBOARD_SEED, botsByRole, type Bot } from './data/bots'
 import * as L from './data/lines'
@@ -26,7 +26,18 @@ export const TUNE = {
   lambda: 0.35,
   buyMedian: 0.15,
   sellBase: 0.03,
+  /** how often bots post about routine stuff (their buys still happen either way) */
+  chatter: 0.5,
 }
+
+/** roll for a routine (non-gameplay) post. globally rate-limited so the feed stays readable */
+let nextChatter = 0
+function chatty(weight = 1) {
+  if (worldT < nextChatter || !chance(TUNE.chatter * weight)) return false
+  nextChatter = worldT + rand(42, 72)
+  return true
+}
+let worldT = 0
 
 // ---------- helpers ----------
 
@@ -266,8 +277,8 @@ function spawnAi(w: World, preset?: { ident: CoinIdentity; kind: Exclude<ScriptK
   log(w, 'deployer-farm', `@${dep.handle} deployed ${tk(c)} "${c.name}"`, 'c')
   if (wallets > 1) log(w, 'deployer-farm', `${tk(c)} block 0: ${wallets} wallets took ${pct.toFixed(1)}% (funded via "totally random cex")`, 'r')
   log(w, 'sniper-swarm', `${tk(c)} sniped ${sniperPct.toFixed(1)}% in block 0. landed.`, 'c')
-  if (chance(0.5)) addPost(w, dep.id, fill(pick(L.DEPLOY), { T: tk(c), N: randInt(4, 31) }), { coinId: c.id, kind: 'launch' })
-  else if (chance(0.4)) addPost(w, 'news', fill(pick(L.NEWS_LAUNCH), { T: tk(c), NAME: c.name }), { coinId: c.id, kind: 'news' })
+  if (chatty(1.4)) addPost(w, dep.id, fill(pick(L.DEPLOY), { T: tk(c), N: randInt(4, 31) }), { coinId: c.id, kind: 'launch' })
+  else if (chatty(0.5)) addPost(w, 'news', fill(pick(L.NEWS_LAUNCH), { T: tk(c), NAME: c.name }), { coinId: c.id, kind: 'news' })
 }
 
 // ---------- KOLs ----------
@@ -348,7 +359,7 @@ function kill(w: World, c: Coin) {
   w.usedTickers.push(c.ticker)
   if (w.usedTickers.length > 50) w.usedTickers.shift()
   log(w, 'reaper', `${tk(c)} died at ${fmtAge(age)} — ${rekt} wallets rekt. cause: ${c.epitaph}`, 'd')
-  if (chance(0.5)) {
+  if (chatty(1.6)) {
     const b = pick(BOTS.filter((x) => x.role === 'filler' || x.role === 'ape' || x.role === 'reply'))
     addPost(w, b.id, fill(pick(L.DEATH), { T: tk(c), AGE: fmtAge(age), ATH: fmtUsd(c.ath) }), { coinId: c.id, kind: 'death' })
   }
@@ -462,15 +473,19 @@ function simCoin(w: World, c: Coin) {
 
   // feed reactions to big moves
   const mc = mcUsd(c)
-  if (w.t - c.pumpPosted > 100) {
-    if (changeOver(c, 4) > 2.4 && mc > 14000) {
+  if (w.t - c.pumpPosted > 360) {
+    const pumped = changeOver(c, 4) > 2.4 && mc > 14000
+    const dumped = !pumped && ch1 < 0.55 && c.ath > 12000
+    // only spend the shared chatter slot when there's actually something to react to
+    if ((pumped || dumped) && chatty(0.6)) {
       c.pumpPosted = w.t
-      const b = pick(BOTS.filter((x) => x.role === 'ape' || x.role === 'filler' || x.role === 'reply'))
-      addPost(w, b.id, fill(pick(L.PUMP), { T: tk(c), MC: fmtUsd(mc), X: changeOver(c, 4).toFixed(1) }), { coinId: c.id, kind: 'shitpost' })
-    } else if (ch1 < 0.55 && c.ath > 12000) {
-      c.pumpPosted = w.t
-      const b = pick(BOTS.filter((x) => x.role === 'ape' || x.role === 'reply'))
-      addPost(w, b.id, fill(pick(L.DUMP), { T: tk(c), PCT: randInt(20, 60) }), { coinId: c.id, kind: 'shitpost' })
+      if (pumped) {
+        const b = pick(BOTS.filter((x) => x.role === 'ape' || x.role === 'filler' || x.role === 'reply'))
+        addPost(w, b.id, fill(pick(L.PUMP), { T: tk(c), MC: fmtUsd(mc), X: changeOver(c, 4).toFixed(1) }), { coinId: c.id, kind: 'shitpost' })
+      } else {
+        const b = pick(BOTS.filter((x) => x.role === 'ape' || x.role === 'reply'))
+        addPost(w, b.id, fill(pick(L.DUMP), { T: tk(c), PCT: randInt(20, 60) }), { coinId: c.id, kind: 'shitpost' })
+      }
     }
   }
 
@@ -501,7 +516,7 @@ function simCoin(w: World, c: Coin) {
 function narrative(w: World, c: Coin) {
   const boost = rand(1, 2.6)
   c.hype += boost
-  addPost(w, 'news', fill(pick(L.NEWS_NARRATIVE), { T: tk(c) }), { coinId: c.id, kind: 'news' })
+  if (chatty(2.5)) addPost(w, 'news', fill(pick(L.NEWS_NARRATIVE), { T: tk(c) }), { coinId: c.id, kind: 'news' })
   log(w, 'retail-herd', `narrative detected on ${tk(c)} → attention +${boost.toFixed(1)}`, 'g')
 }
 
@@ -553,7 +568,7 @@ function kolExit(w: World, c: Coin, age: number) {
   const full = chance(0.5)
   const { sol, cost } = execSell(w, c, h.id, full ? h.tokens : h.tokens * 0.6)
   log(w, 'kol-runner', `@${bot.handle} sold ${full ? '100' : '60'}% of ${tk(c)} into followers (+${(sol - cost).toFixed(2)} SOL)`, 'r')
-  if (chance(0.45)) addPost(w, bot.id, fill(pick(L.KOL_EXIT), { T: tk(c) }), { coinId: c.id, kind: 'shitpost' })
+  if (chatty(1)) addPost(w, bot.id, fill(pick(L.KOL_EXIT), { T: tk(c) }), { coinId: c.id, kind: 'shitpost' })
   s.kolSellAge = full ? undefined : age + rand(30, 90)
 }
 
@@ -574,7 +589,7 @@ function sleuth(w: World) {
   if (c.detect > threshold) flagCoin(w, c, bot.id)
   else {
     log(w, 'sleuth.exe', `${tk(c)} distribution passes. moving on.`, 'd')
-    if (chance(0.3)) addPost(w, bot.id, fill(pick(L.SLEUTH_CLEAN), { T: tk(c) }), { coinId: c.id, kind: 'shitpost' })
+    if (chatty(1)) addPost(w, bot.id, fill(pick(L.SLEUTH_CLEAN), { T: tk(c) }), { coinId: c.id, kind: 'shitpost' })
   }
 }
 
@@ -584,6 +599,7 @@ function filler(w: World) {
   const live = Object.values(w.coins).filter((c) => c.status !== 'dead')
   const roll = Math.random()
   if (roll < 0.36) {
+    if (!chatty(0.6)) return
     const b = pick(BOTS.filter((x) => x.role === 'filler'))
     addPost(w, b.id, b.id === 'f2' && chance(0.6) ? pick(L.THERAPIST) : pick(L.FILLER), { kind: 'shitpost' })
   } else if (roll < 0.7 && live.length) {
@@ -592,14 +608,14 @@ function filler(w: World) {
     const sol = rand(0.1, 1.2)
     execBuy(w, c, `ape:${b.id}`, 'retail', sol, { label: `@${b.handle}` })
     c.hype += 0.08
-    addPost(w, b.id, fill(pick(L.APE), { T: tk(c), MC: fmtUsd(mcUsd(c)) }), { coinId: c.id, kind: 'call' })
+    if (chatty()) addPost(w, b.id, fill(pick(L.APE), { T: tk(c), MC: fmtUsd(mcUsd(c)) }), { coinId: c.id, kind: 'call' })
   } else if (roll < 0.78 && live.length) {
     const c = pick(live)
     const sol = rand(2, 9)
     execBuy(w, c, 'whale:w1', 'whale', sol, { label: '@based_whale' })
     c.hype += 0.4
     log(w, 'whale-watch', `@based_whale bought ${sol.toFixed(1)} SOL of ${tk(c)}`, 'c')
-    if (chance(0.5)) addPost(w, 'w1', `bought some ${tk(c)}. don't read into it. (read into it)`, { coinId: c.id, kind: 'call' })
+    if (chatty(2)) addPost(w, 'w1', `bought some ${tk(c)}. don't read into it. (read into it)`, { coinId: c.id, kind: 'call' })
   }
   if (chance(0.45)) {
     const [agent, text] = pick(L.AGENT_IDLE)
@@ -609,7 +625,7 @@ function filler(w: World) {
 
 function randomKolCall(w: World) {
   if (w.t < w.nextKolCall) return
-  w.nextKolCall = w.t + rand(70, 170)
+  w.nextKolCall = w.t + rand(150, 300)
   const cands = Object.values(w.coins).filter((c) => c.status !== 'dead' && !c.script.kolCalled && w.t - c.born < 700 && mcUsd(c) < 70000 && !(c.flagged && chance(0.8)))
   if (!cands.length) return
   kolCall(w, pick(cands), pick(botsByRole('kol')))
@@ -718,6 +734,8 @@ function vipAdmin(w: World) {
 
 export function tick(w: World) {
   w.t += SEC_PER_TICK
+  worldT = w.t
+  if (nextChatter > w.t + 60) nextChatter = 0 // new world / reload
   if (w.scheduled.length) {
     const due = w.scheduled.filter((s) => s.at <= w.t)
     w.scheduled = w.scheduled.filter((s) => s.at > w.t)
