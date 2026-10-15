@@ -1,8 +1,8 @@
-import { FEE, INIT_V_SOL, INIT_V_TOK, TOTAL_SUPPLY } from './constants'
+﻿import { INIT_V_SOL, INIT_V_TOK, TOTAL_SUPPLY } from './constants'
 import * as L from './data/lines'
 import { BOT_BY_ID } from './data/bots'
 import { addPost, flagCoin, followerPower, log, makeCoin, queueReply, rollLaunch, unlock } from './engine'
-import { bundleBuy, changeOver, clusterPct, costForTokens, execBuy, execSell, mark, mcUsd, playerHolders, playerPosition, topHoldersPct } from './market'
+import { bundleBuy, changeOver, clusterPct, costForTokens, execBuy, execSell, mark, mcUsd, playerHolders, playerPosition, solPx, topHoldersPct } from './market'
 import type { Coin, World } from './types'
 import { addr, chance, clamp, fill, pick, rand, randInt } from './util'
 import { fx, toast } from './fx'
@@ -114,13 +114,7 @@ export function sell(w: World, coinId: string, frac: number, drill = false): Sel
     notes.push('cope')
   }
 
-  p.xp += xp
-  c.pc.profit += pnl
-  p.stats.realized += pnl
-  p.stats.trades++
-  if (x > p.stats.bestX) p.stats.bestX = x
-  if (x >= 10) unlock(w, 'tenx')
-  if (x > 0 && x <= 0.2) unlock(w, 'exit_liq')
+  bookSell(w, c, pnl, x, xp)
   mark(w, c, drill ? 'D' : 'S')
 
   // reputation: dumping on your own call
@@ -161,47 +155,66 @@ export function sell(w: World, coinId: string, frac: number, drill = false): Sel
   }
   if (!drill && Math.abs(xp) >= 1) toast(pnl >= 0 ? 'xp' : 'bad', `${xp >= 0 ? '+' : ''}${xp.toLocaleString()} XP`, notes.join(' · '))
   exReact(w, pnl)
-  if (playerPosition(c).tokens <= 0) recordFlex(w, c, xp, drill)
+  if (playerPosition(c).tokens <= 0) recordFlex(w, c, drill)
   return { sol: solOut, pnl, xp, notes }
 }
 
-/** snapshot a closed position for the PnL card */
-function recordFlex(w: World, c: Coin, xp: number, drill: boolean) {
+/** bookkeeping shared by every player sell path */
+function bookSell(w: World, c: Coin, pnl: number, x: number, xp: number) {
+  const p = w.player
+  p.xp += xp
+  c.pc.profit += pnl
+  c.pc.posXp = (c.pc.posXp ?? 0) + xp
+  p.stats.realized += pnl
+  p.stats.trades++
+  if (x > p.stats.bestX) p.stats.bestX = x
+  if (x >= 10) unlock(w, 'tenx')
+  if (x > 0 && x <= 0.2) unlock(w, 'exit_liq')
+}
+
+/** snapshot a closed position for the PnL card, then reset per-position counters */
+function recordFlex(w: World, c: Coin, drill: boolean) {
   const invested = c.pc.soldCost ?? 0
   const out = c.pc.soldSol ?? 0
-  if (invested < 0.01) return
-  const rektNow = Object.values(c.holders).filter((h) => h.viaCall && h.kind === 'retail' && h.tokens > 0).length
-  c.pc.flex = {
-    ticker: c.ticker,
-    emoji: c.emoji,
-    hue: c.hue,
-    image: c.image,
-    invested,
-    out,
-    pnl: out - invested,
-    xp: (c.pc.flex?.xp ?? 0) + xp,
-    held: w.t - (c.pc.firstBuyAt ?? c.pc.launchT ?? w.t),
-    rekt: rektNow,
-    drill,
+  if (invested >= 0.01) {
+    c.pc.flex = {
+      ticker: c.ticker,
+      emoji: c.emoji,
+      hue: c.hue,
+      image: c.image,
+      invested,
+      out,
+      pnl: out - invested,
+      xp: c.pc.posXp ?? 0,
+      held: w.t - (c.pc.firstBuyAt ?? c.pc.launchT ?? w.t),
+      rekt: Object.values(c.holders).filter((h) => h.viaCall && h.kind === 'retail' && h.tokens > 0).length,
+      drill,
+    }
+    w.lastFlex = c.id
   }
   c.pc.soldCost = 0
   c.pc.soldSol = 0
-  w.lastFlex = c.id
+  c.pc.posXp = 0
+  c.pc.firstBuyAt = undefined
 }
 
 export function sellWallet(w: World, coinId: string, walletId: string) {
   const c = w.coins[coinId]
   const h = c?.holders[walletId]
   if (!c || !h || h.tokens <= 0) return
+  if (txFails(w)) return
+  onPlayerSell(w, c)
   const { sol, cost } = execSell(w, c, walletId, h.tokens)
+  c.pc.soldCost = (c.pc.soldCost ?? 0) + cost
+  c.pc.soldSol = (c.pc.soldSol ?? 0) + sol
   const pnl = sol - cost
   const xp = Math.round(pnl > 0 ? pnl * 100 : pnl * 40)
-  w.player.xp += xp
-  c.pc.profit += pnl
-  w.player.stats.realized += pnl
+  bookSell(w, c, pnl, cost > 0 ? sol / cost : 0, xp)
   mark(w, c, 'S')
   sfx.sell()
   fx({ type: 'float', text: `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} SOL`, tone: pnl >= 0 ? 'g' : 'r' })
+  exReact(w, pnl)
+  if (playerPosition(c).tokens <= 0) recordFlex(w, c, false)
 }
 
 // ---------- launching ----------
@@ -225,7 +238,7 @@ export function estimateLaunch(lp: LaunchParams) {
   const risk = lp.pct * 1.15 + (lp.wallets <= 2 && lp.pct > 10 ? 12 : 0) + (lp.tip >= 0.3 ? 8 : 0) - (lp.fresh ? 8 : 0) - Math.min(6, lp.wallets * 0.4)
   const label = risk < 12 ? 'LOW' : risk < 26 ? 'SUS' : risk < 42 ? 'OBVIOUS' : 'FEDS WATCHING'
   const sniper = lp.tip < 0.05 ? '3–9% (snipers eat first)' : lp.tip < 0.15 ? '0–4%' : '~0% (tip too fat to front-run)'
-  return { bundleCost, fees, total: bundleCost + fees, risk: Math.max(0, risk), label, sniper, avgEntryMc: lp.pct > 0 ? (bundleCost * (1 - FEE) / tokens) * TOTAL_SUPPLY * 180 : 0 }
+  return { bundleCost, fees, total: bundleCost + fees, risk: Math.max(0, risk), label, sniper, avgEntryMc: lp.pct > 0 ? (bundleCost / tokens) * TOTAL_SUPPLY * solPx.usd : 0 }
 }
 
 export function launch(w: World, lp: LaunchParams): Coin | null {
@@ -248,11 +261,17 @@ export function launch(w: World, lp: LaunchParams): Coin | null {
   p.sol -= est.fees
   const sniperPct = lp.tip < 0.05 ? rand(3, 9) : lp.tip < 0.15 ? rand(0, 4) : 0
   if (sniperPct > 0.3) bundleBuy(w, c, sniperPct, randInt(2, 5), 'sniper', '')
-  if (lp.pct > 0) {
+  // snipers moved the curve, so the bundle now costs more than the estimate.
+  // shrink it to what the wallet can actually pay instead of going negative.
+  let pct = lp.pct
+  const budget = p.sol - 0.001
+  while (pct > 0 && costForTokens(c.vSol, c.vTok, (pct / 100) * TOTAL_SUPPLY) > budget) pct = Math.max(0, pct - 0.5)
+  if (pct < lp.pct) log(w, 'jito', `snipers front-ran you — bundle trimmed from ${lp.pct}% to ${pct.toFixed(1)}% to fit your balance`, 'a')
+  if (pct > 0) {
     const ids = ['you:main', ...Array.from({ length: lp.wallets - 1 }, () => `you:${addr(6)}`)]
-    bundleBuy(w, c, lp.pct, lp.wallets, 'player', 'you', ids, 'DEV')
+    bundleBuy(w, c, pct, lp.wallets, 'player', 'you', ids, 'DEV')
   }
-  c.bundlePct = lp.pct
+  c.bundlePct = Math.round(pct * 10) / 10
   c.bundleWallets = lp.wallets
   c.detect = est.risk + rand(-6, 6)
   c.launchMc = mcUsd(c)
@@ -264,7 +283,7 @@ export function launch(w: World, lp: LaunchParams): Coin | null {
   if (p.stats.launched >= 10) unlock(w, 'serial')
 
   log(w, 'deployer-farm', `@${p.handle} deployed ${tk(c)} "${c.name}"`, 'g')
-  if (lp.pct > 0) log(w, 'jito', `bundle landed: ${lp.wallets} wallets, ${lp.pct.toFixed(1)}% of supply, tip ${lp.tip} SOL`, 'g')
+  if (lp.pct > 0) log(w, 'jito', `bundle landed: ${lp.wallets} wallets, ${c.bundlePct.toFixed(1)}% of supply, tip ${lp.tip} SOL`, 'g')
   log(w, 'sniper-swarm', sniperPct > 0.3 ? `${tk(c)} front-ran your bundle for ${sniperPct.toFixed(1)}%. low tip = free food` : `${tk(c)} tip too high. snipers starving.`, sniperPct > 0.3 ? 'r' : 'c')
   if (chance(0.6)) addPost(w, 'news', fill(pick(L.NEWS_LAUNCH), { T: tk(c), NAME: c.name }), { coinId: c.id, kind: 'news' })
   if (est.risk > 30 && chance(0.7)) {

@@ -108,6 +108,7 @@ export function continueGame() {
   for (const c of Object.values(world.chats)) for (const m of c.msgs) m.rt = 0
   for (const p of world.feed) p.rt = 0
   world.paused = false
+  world.solOpen = world.solUsd // header SOL % is relative to this session
   setSoundEnabled(world.sound)
   bump()
   return true

@@ -154,6 +154,7 @@ export interface PlayerCoinMeta {
   firstBuyAt?: number
   soldCost?: number
   soldSol?: number
+  posXp?: number
   flex?: Flex
 }
 
