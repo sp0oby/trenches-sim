@@ -3,11 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#060708" />
-    <title>trenches.sim</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23060708'/><text x='4' y='23' font-family='monospace' font-size='20' fill='%2339ff88'>&gt;_</text></svg>" />
+    <meta name="theme-color" content="#09090b" />
+    <meta name="color-scheme" content="dark" />
+
+    <title>trenches.sim — memecoin trenches simulator</title>
+    <meta name="description" content="Launch a memecoin, bundle the supply, shill it to your followers and drill the chart. A free browser game satirizing the Solana trenches and crypto twitter. No wallet, no real money." />
+    <meta name="keywords" content="memecoin simulator, crypto game, solana trenches, pump.fun parody, crypto twitter, bundling, KOL, browser game" />
+    <link rel="canonical" href="%SITE_URL%/" />
+
+    <!-- Open Graph (Discord, Telegram, iMessage, LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="trenches.sim" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:title" content="trenches.sim — Launch. Bundle. Shill. Drill." />
+    <meta property="og:description" content="A memecoin trenches simulator. Farm your followers, get exposed by sleuths, join the cabal, get drained in your DMs. Free, in your browser." />
+    <meta property="og:image" content="%SITE_URL%/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="trenches.sim — a memecoin chart getting drilled after a KOL call" />
+
+    <!-- X / Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="trenches.sim — Launch. Bundle. Shill. Drill." />
+    <meta name="twitter:description" content="A memecoin trenches simulator. Farm your followers, get exposed by sleuths, join the cabal, get drained in your DMs." />
+    <meta name="twitter:image" content="%SITE_URL%/og.png" />
+    <meta name="twitter:image:alt" content="trenches.sim — a memecoin chart getting drilled after a KOL call" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "trenches.sim",
+        "url": "%SITE_URL%/",
+        "image": "%SITE_URL%/og.png",
+        "description": "A free single-player browser game satirizing memecoin trenches and crypto twitter: launch, bundle, shill and drill.",
+        "genre": ["Simulation", "Satire"],
+        "gamePlatform": "Web browser",
+        "applicationCategory": "Game",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
   </head>
   <body>
+    <noscript>trenches.sim is a browser game and needs JavaScript. Launch a memecoin, bundle it, shill it, drill it.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

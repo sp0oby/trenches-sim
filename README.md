@@ -13,6 +13,10 @@ npm run dev
 
 Then open http://localhost:5173.
 
+## Deploy
+
+On Vercel the defaults work: Vite preset, `npm run build`, output `dist`. Social preview URLs use Vercel's production domain automatically. On a custom domain, set the `SITE_URL` env var (e.g. `https://trenches.gg`) so link cards point at it.
+
 ## Controls
 
 | Key | Action |
