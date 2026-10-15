@@ -321,23 +321,36 @@ function TradePanel({ c, w }: { c: Coin; w: World }) {
         </div>
 
         <div className="pos">
-          <div>
-            <div className="k">Value</div>
-            <div className="v num">{fmtSol(pos.value)} SOL</div>
+          <div title="What you'd receive selling the whole bag right now, after price impact and the 1% fee">
+            <div className="k">If sold now</div>
+            <div className="v num">{has ? `${fmtSol(pos.value)} SOL` : '—'}</div>
           </div>
-          <div>
+          <div title="Sell-all value minus what you paid (fees included)">
             <div className="k">PnL</div>
-            <div className={`v num ${pos.pnl >= 0 ? 'g' : 'r'}`}>
+            <div className={`v num ${has ? (pos.pnl >= 0 ? 'g' : 'r') : ''}`}>
               {has ? `${pos.pnl >= 0 ? '+' : ''}${fmtSol(pos.pnl)} (${pos.x.toFixed(2)}x)` : '—'}
             </div>
           </div>
-          <div>
-            <div className="k">Supply held</div>
-            <div className="v num">{(pos.pct * 100).toFixed(2)}%</div>
+          <div title="Average market cap you bought at, fees included">
+            <div className="k">Avg entry</div>
+            <div className="v num">{has ? fmtUsd(pos.avgEntryMc) : '—'}</div>
+          </div>
+          <div title="Your bag × the chart price. Not what you'd actually get">
+            <div className="k">Paper PnL</div>
+            <div className={`v num ${has ? (pos.markPnl >= 0 ? 'g' : 'r') : ''}`} style={{ opacity: 0.75 }}>
+              {has ? `${pos.markPnl >= 0 ? '+' : ''}${fmtSol(pos.markPnl)}` : '—'}
+            </div>
+          </div>
+          <div title="How much selling the whole bag at once would push the price down">
+            <div className="k">Price impact</div>
+            <div className={`v num ${pos.impact > 0.1 ? 'a' : ''}`}>{has ? `-${(pos.impact * 100).toFixed(1)}%` : '—'}</div>
           </div>
           <div>
-            <div className="k">Wallets</div>
-            <div className="v num">{Object.values(c.holders).filter((h) => h.kind === 'player' && h.tokens > 0).length}</div>
+            <div className="k">Supply held</div>
+            <div className="v num">
+              {(pos.pct * 100).toFixed(2)}%
+              {has && <span className="d" style={{ fontWeight: 400 }}> · {Object.values(c.holders).filter((h) => h.kind === 'player' && h.tokens > 0).length}w</span>}
+            </div>
           </div>
           <div>
             <div className="k">Realized</div>
@@ -348,6 +361,13 @@ function TradePanel({ c, w }: { c: Coin; w: World }) {
             <div className="v num p">{sinceCall != null ? `${fmtAge(sinceCall)} ago` : '—'}</div>
           </div>
         </div>
+
+        {has && pos.markPnl > 0 && pos.pnl < 0 && (
+          <div className="hint" style={{ background: 'var(--amber-bg)', boxShadow: 'inset 0 0 0 1px rgba(240,160,32,.2)' }}>
+            The chart is above your entry, but your bag is big for this pool. Dumping it all at once moves the price{' '}
+            <span className="a num">{(pos.impact * 100).toFixed(0)}%</span>. Scale out in chunks, or wait for more buyers.
+          </div>
+        )}
 
         {sinceCall != null && sinceCall < 300 && (
           <div className="hint">

@@ -47,8 +47,23 @@ export function playerPosition(c: Coin) {
     tokens += h.tokens
     cost += h.cost
   }
+  // value = what selling the whole bag returns right now (price impact + fee included)
   const value = tokens > 0 ? quoteSell(c.vSol, c.vTok, tokens).sol : 0
-  return { tokens, cost, value, pnl: value - cost, x: cost > 0 ? value / cost : 0, pct: tokens / TOTAL_SUPPLY }
+  // mark = tokens × chart price, i.e. what the chart "says" the bag is worth
+  const mark = tokens * price(c)
+  const avgEntryMc = tokens > 0 ? (cost / tokens) * TOTAL_SUPPLY * solPx.usd : 0
+  return {
+    tokens,
+    cost,
+    value,
+    mark,
+    pnl: value - cost,
+    markPnl: mark - cost,
+    impact: mark > 0 ? 1 - value / mark : 0,
+    avgEntryMc,
+    x: cost > 0 ? value / cost : 0,
+    pct: tokens / TOTAL_SUPPLY,
+  }
 }
 
 /** ratio of current close vs open n candles ago */

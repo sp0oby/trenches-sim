@@ -235,11 +235,16 @@ function DeployCard({ c, w }: { c: Coin; w: World }) {
             {fmtAge(age)} · bundled {c.bundlePct}% / {c.bundleWallets} wallets · {fmtUsd(mcUsd(c))} mcap · ath {fmtUsd(c.ath)}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right' }} title="Selling every wallet at once, after price impact and fees">
           <div className="b num">{fmtSol(pos.value)} SOL</div>
           <div className={`num ${pos.pnl >= 0 ? 'g' : 'r'}`} style={{ fontSize: 11 }}>
-            {pos.tokens > 0 ? `${pos.pnl >= 0 ? '+' : ''}${fmtSol(pos.pnl)} unrealized` : 'no bag'}
+            {pos.tokens > 0 ? `${pos.pnl >= 0 ? '+' : ''}${fmtSol(pos.pnl)} if dumped now` : 'no bag'}
           </div>
+          {pos.tokens > 0 && (
+            <div className="d num" style={{ fontSize: 11 }}>
+              paper {pos.markPnl >= 0 ? '+' : ''}{fmtSol(pos.markPnl)} · impact -{(pos.impact * 100).toFixed(0)}%
+            </div>
+          )}
         </div>
       </div>
       <div className="wallets">
