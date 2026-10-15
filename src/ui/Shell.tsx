@@ -87,12 +87,16 @@ export default function Shell() {
           <button key={a.id} className={`tab${nav.app === a.id ? ' on' : ''}`} style={{ ['--tab-accent' as string]: ACCENT[a.id] }} onClick={() => go(a.id)} title={`${a.label} (${i + 1})`}>
             <span className="ic">{a.icon}</span>
             <span className="lbl ellipsis">{a.label}</span>
+            <span className="lbl-s">{a.short}</span>
             {badges[a.id] ? <span className="badge">{badges[a.id]}</span> : <span className="k">{i + 1}</span>}
           </button>
         ))}
       </div>
 
       <div className="addr">
+        <span className="m-brand">
+          trenches<span>.sim</span>
+        </span>
         <button className="nav-btn" onClick={goBack} disabled={!nav.back.length} title="Back (alt+←)">‹</button>
         <button className="nav-btn" onClick={goFwd} disabled={!nav.fwd.length} title="Forward (alt+→)">›</button>
         <button className="nav-btn" onClick={() => go(nav.app, { loading: Date.now() })} title="Reload">↻</button>

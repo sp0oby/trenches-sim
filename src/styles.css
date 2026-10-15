@@ -474,16 +474,19 @@ input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 
   .kol { grid-template-columns: 1fr; }
   .linkbtns { grid-template-columns: 1fr; }
 }
+.m-brand, .lbl-s, .tg-back { display: none; }
+
 @media (max-width: 980px) {
   body { overflow: auto; }
   .shell { height: auto; min-height: 100%; }
   .view { overflow: visible; }
-  .term, .bundl, .bubble, .y, .tg { grid-template-columns: 1fr; height: auto; }
+  .term, .bundl, .bubble, .y, .tg { grid-template-columns: minmax(0, 1fr); height: auto; }
   .term-left { grid-template-rows: 360px 200px; }
   .term-mid { grid-template-rows: auto 340px auto; }
   .mid-bottom { grid-template-columns: 1fr; }
   .mid-bottom > .pane { height: 220px; }
-  .y .side.right, .bubble > .pane:first-child { display: none; }
+  .y .side.right { display: none; }
+  .bubble > .pane:first-child { max-height: 200px; }
   .bubble .stage { height: 420px; }
   .tg .list { max-height: 240px; }
   .tg .thread { height: 70vh; }
@@ -494,4 +497,89 @@ input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 
   .coinhead { flex-wrap: wrap; }
   .coinhead .kv { margin-left: 0; flex-wrap: wrap; gap: 10px 16px; width: 100%; }
   .clock { display: none; }
+}
+
+/* ---------- phone: app-style layout ---------- */
+@media (max-width: 760px) {
+  body { font-size: 13.5px; }
+  .shell { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .input, textarea.input, select.input { font-size: 16px; } /* stop iOS zoom-on-focus */
+
+  /* bottom tab bar */
+  .tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 55;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); gap: 0;
+    justify-content: space-around; align-items: stretch;
+    background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(16px) saturate(140%);
+    border-top: 1px solid var(--line);
+  }
+  .dots, .tab .lbl, .tab .k { display: none; }
+  .tab { flex: 1; flex-direction: column; justify-content: center; gap: 4px; height: 52px; padding: 0; max-width: none; border-radius: 10px; }
+  .tab.on { background: transparent; box-shadow: none; }
+  .tab .ic { width: 24px; height: 24px; border-radius: 7px; font-size: 12px; }
+  .tab .lbl-s { display: block; font-size: 10.5px; font-weight: 500; }
+  .tab .badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 16px; height: 16px; font-size: 9.5px; }
+
+  /* compact header */
+  .addr { padding: calc(8px + env(safe-area-inset-top)) 14px 8px; position: sticky; top: 0; z-index: 40; }
+  .addr .nav-btn:not([title='Sound']), .url, .clock { display: none; }
+  .m-brand { display: block; flex: 1; font-weight: 700; font-size: 17px; letter-spacing: -0.04em; }
+  .m-brand span { color: var(--dim); font-weight: 400; }
+  .hud { height: 40px; scrollbar-width: none; }
+  .hud::-webkit-scrollbar { display: none; }
+  .hud .stat { padding: 0 12px; }
+  .statusbar { display: none; }
+
+  /* terminal: pairs → coin → chart → trade → tape/holders → agents */
+  .term { display: flex; flex-direction: column; gap: 1px; }
+  .term-left, .term-mid { display: contents; }
+  .term .pairs { order: 1; max-height: 232px; }
+  .term .coinhead { order: 2; padding: 14px; gap: 12px; }
+  .term .chartwrap { order: 3; height: 300px; }
+  .term .tradepane { order: 4; }
+  .term .mid-bottom { order: 5; }
+  .term .agents { order: 6; height: 230px; }
+  .coinhead > div:nth-child(2) { flex: 1; min-width: 0; }
+  .coinhead .title h1 { font-size: 16px; }
+  .coinhead .kv { gap: 8px 18px; }
+  .kv .v.big { font-size: 18px; }
+  .trade .quick .btn { height: 40px; }
+  .drill { height: 52px; }
+  .linkbtns { grid-template-columns: 1fr 1fr; }
+
+  /* y.com */
+  .y .main { border: 0; }
+  .compose textarea { font-size: 17px; min-height: 52px; }
+  .tpls { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px; scrollbar-width: none; }
+  .tpls::-webkit-scrollbar { display: none; }
+  .tpls button { flex-shrink: 0; }
+  .tw { padding: 12px 14px; }
+  .tw .acts { max-width: none; }
+
+  /* telegrum: list OR thread, like the real app */
+  .tg .list { max-height: none; min-height: calc(100dvh - 190px); }
+  .tg.open .list { display: none; }
+  .tg:not(.open) .thread { display: none; }
+  .tg .thread { height: calc(100dvh - 160px); }
+  .tg .msgs { padding: 14px 12px; }
+  .bub { max-width: 84%; }
+  .tg-back { display: grid; place-items: center; width: 32px; height: 32px; margin-left: -8px; font-size: 26px; color: #6ab3f3; }
+  .tg .opts { padding: 10px 12px; }
+  .tg .opts button { flex: 1 1 auto; }
+
+  /* bundl / bubble / kolscam */
+  .bundl .form, .deploys { padding: 16px; }
+  .emojis { grid-template-columns: repeat(8, 1fr); }
+  .emojis button { height: 36px; }
+  .wr { grid-template-columns: 1fr 60px 64px 56px; }
+  .wr > :nth-child(4) { display: none; }
+  .bubble .stage { height: 380px; }
+  .kol { padding: 16px; gap: 18px; }
+  .kgrid .v { font-size: 16px; }
+
+  /* overlays */
+  .toasts { top: calc(8px + env(safe-area-inset-top)); }
+  .deathfx { bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .modal { padding: 14px; }
+  .drillfx .xp { font-size: 30px; }
 }

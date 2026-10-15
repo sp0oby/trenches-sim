@@ -66,13 +66,13 @@ export default function Telegrum() {
     .sort((a, b) => (b.last?.id ?? 0) - (a.last?.id ?? 0))
 
   return (
-    <div className="tg">
+    <div className={`tg${nav.tgOpen ? ' open' : ''}`}>
       <div className="list">
         <div className="search">Search</div>
         {contacts.map(({ ct, last }) => {
           const ch = w.chats[ct.id]
           return (
-            <div key={ct.id} className={`chatrow${ct.id === chatId ? ' on' : ''}`} onClick={() => setNav({ tgChat: ct.id })}>
+            <div key={ct.id} className={`chatrow${ct.id === chatId ? ' on' : ''}`} onClick={() => setNav({ tgChat: ct.id, tgOpen: true })}>
               <Avatar hue={ct.hue} emoji={ct.avatar} size={48} />
               <div style={{ minWidth: 0 }}>
                 <div className="nm ellipsis">{ct.name}</div>
@@ -86,6 +86,7 @@ export default function Telegrum() {
 
       <div className="thread">
         <div className="thead">
+          <button className="tg-back" onClick={() => setNav({ tgOpen: false })} aria-label="Back to chats">‹</button>
           <Avatar hue={contact.hue} emoji={contact.avatar} size={40} />
           <div>
             <div style={{ color: '#fff', fontWeight: 600 }}>{contact.name}</div>

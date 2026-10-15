@@ -116,7 +116,7 @@ function AgentLog({ w }: { w: World }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [lastId])
   return (
-    <div className="pane">
+    <div className="pane agents">
       <div className="pane-h">
         <span className="pulse" />
         <span className="t">Agents</span>
@@ -276,7 +276,7 @@ function TradePanel({ c, w }: { c: Coin; w: World }) {
   const has = pos.tokens > 0
   const sinceCall = c.pc.callAt != null ? w.t - c.pc.callAt : null
   return (
-    <div className="pane">
+    <div className="pane tradepane">
       <div className="pane-h">
         <span className="t">Trade</span>
         <span className="grow" />
@@ -370,9 +370,9 @@ function TradePanel({ c, w }: { c: Coin; w: World }) {
             <button className="btn sm" onClick={() => compose('call', c.id)}>Shill on Y</button>
             <button className="btn sm" onClick={() => compose('fud', c.id)}>FUD on Y</button>
             <button className="btn sm" onClick={() => go('bubble', { bubbleCoin: c.id })}>Bubblemap</button>
-            <button className="btn sm" onClick={() => go('tg', { tgChat: 'kev' })}>Ask kev</button>
+            <button className="btn sm" onClick={() => go('tg', { tgChat: 'kev', tgOpen: true })}>Ask kev</button>
             {c.byPlayer && <button className="btn sm" onClick={() => go('bundl')}>Bundle wallets</button>}
-            {c.byPlayer && <button className="btn sm" onClick={() => go('tg', { tgChat: 'agency' })}>Book a KOL</button>}
+            {c.byPlayer && <button className="btn sm" onClick={() => go('tg', { tgChat: 'agency', tgOpen: true })}>Book a KOL</button>}
           </div>
         </div>
       </div>

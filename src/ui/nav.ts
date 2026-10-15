@@ -3,13 +3,13 @@ import type { PostMode } from '../game/actions'
 
 export type AppId = 'term' | 'y' | 'bundl' | 'bubble' | 'tg' | 'kol'
 
-export const APPS: { id: AppId; label: string; icon: string; host: string }[] = [
-  { id: 'term', label: 'Trench Terminal', icon: '↗', host: 'trench.term' },
-  { id: 'y', label: 'Y', icon: 'Y', host: 'y.com' },
-  { id: 'bundl', label: 'bundl.fun', icon: 'B', host: 'bundl.fun' },
-  { id: 'bubble', label: 'Bubblemapz', icon: '◎', host: 'bubblemapz.io' },
-  { id: 'tg', label: 'Telegrum', icon: '✈', host: 'web.telegrum.org' },
-  { id: 'kol', label: 'Kolscam', icon: 'K', host: 'kolscam.io' },
+export const APPS: { id: AppId; label: string; short: string; icon: string; host: string }[] = [
+  { id: 'term', label: 'Trench Terminal', short: 'Trade', icon: '↗', host: 'trench.term' },
+  { id: 'y', label: 'Y', short: 'Y', icon: 'Y', host: 'y.com' },
+  { id: 'bundl', label: 'bundl.fun', short: 'Launch', icon: 'B', host: 'bundl.fun' },
+  { id: 'bubble', label: 'Bubblemapz', short: 'Bubbles', icon: '◎', host: 'bubblemapz.io' },
+  { id: 'tg', label: 'Telegrum', short: 'Chats', icon: '✈', host: 'web.telegrum.org' },
+  { id: 'kol', label: 'Kolscam', short: 'Profile', icon: 'K', host: 'kolscam.io' },
 ]
 
 export interface Nav {
@@ -22,6 +22,8 @@ export interface Nav {
   ySeen: number
   loading: number
   flex?: string
+  /** phone layout: a chat thread is open (list hidden) */
+  tgOpen?: boolean
 }
 
 let nav: Nav = { app: 'term', back: [], fwd: [], tgChat: 'kev', ySeen: 0, loading: 0 }

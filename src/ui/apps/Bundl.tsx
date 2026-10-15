@@ -176,7 +176,7 @@ function DeployForm({ w }: { w: World }) {
             <div className="row" style={{ marginTop: 10, flexWrap: 'wrap' }}>
               <button className="btn g sm" onClick={() => openCoin(done.id)}>Open chart</button>
               <button className="btn p sm" onClick={() => compose('call', done.id)}>Shill on Y</button>
-              <button className="btn sm" onClick={() => go('tg', { tgChat: 'sherlock' })}>Pay off the sleuth</button>
+              <button className="btn sm" onClick={() => go('tg', { tgChat: 'sherlock', tgOpen: true })}>Pay off the sleuth</button>
             </div>
           )}
         </div>
