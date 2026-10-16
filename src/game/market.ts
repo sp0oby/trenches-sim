@@ -61,6 +61,9 @@ export function playerPosition(c: Coin) {
     markPnl: mark - cost,
     impact: mark > 0 ? 1 - value / mark : 0,
     avgEntryMc,
+    /** headline multiple, like a real terminal: > 1 exactly when the chart is above your avg entry */
+    markX: cost > 0 ? mark / cost : 0,
+    /** multiple if you dumped the whole bag right now */
     x: cost > 0 ? value / cost : 0,
     pct: tokens / TOTAL_SUPPLY,
   }

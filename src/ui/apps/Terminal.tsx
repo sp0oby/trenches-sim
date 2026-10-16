@@ -306,7 +306,7 @@ function TradePanel({ c, w }: { c: Coin; w: World }) {
         <div className="field">
           <label>
             <span>Sell</span>
-            <span>{has ? `${fmtNum(pos.tokens)} tkn` : 'no bag'}</span>
+            <span>{has ? `${fmtNum(pos.tokens)} tkn · ${(pos.pct * 100).toFixed(2)}% supply` : 'no bag'}</span>
           </label>
           <div className="quick" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             {[0.25, 0.5, 1].map((f) => (
@@ -321,36 +321,33 @@ function TradePanel({ c, w }: { c: Coin; w: World }) {
         </div>
 
         <div className="pos">
-          <div title="What you'd receive selling the whole bag right now, after price impact and the 1% fee">
-            <div className="k">If sold now</div>
-            <div className="v num">{has ? `${fmtSol(pos.value)} SOL` : '—'}</div>
+          <div title="Your bag at the current chart price">
+            <div className="k">Value</div>
+            <div className="v num">{has ? `${fmtSol(pos.mark)} SOL` : '—'}</div>
           </div>
-          <div title="Sell-all value minus what you paid (fees included)">
+          <div title="Value minus what you paid (fees included). Green exactly when the chart is above your avg entry.">
             <div className="k">PnL</div>
-            <div className={`v num ${has ? (pos.pnl >= 0 ? 'g' : 'r') : ''}`}>
-              {has ? `${pos.pnl >= 0 ? '+' : ''}${fmtSol(pos.pnl)} (${pos.x.toFixed(2)}x)` : '—'}
+            <div className={`v num ${has ? (pos.markPnl >= 0 ? 'g' : 'r') : ''}`}>
+              {has ? `${pos.markPnl >= 0 ? '+' : ''}${fmtSol(pos.markPnl)} (${pos.markPnl >= 0 ? '+' : ''}${((pos.markX - 1) * 100).toFixed(0)}%)` : '—'}
             </div>
           </div>
-          <div title="Average market cap you bought at, fees included">
+          <div title="Average market cap you bought at, fees included. Shown as the dashed line on the chart.">
             <div className="k">Avg entry</div>
             <div className="v num">{has ? fmtUsd(pos.avgEntryMc) : '—'}</div>
           </div>
-          <div title="Your bag × the chart price. Not what you'd actually get">
-            <div className="k">Paper PnL</div>
-            <div className={`v num ${has ? (pos.markPnl >= 0 ? 'g' : 'r') : ''}`} style={{ opacity: 0.75 }}>
-              {has ? `${pos.markPnl >= 0 ? '+' : ''}${fmtSol(pos.markPnl)}` : '—'}
+          <div title="Current market cap">
+            <div className="k">Now</div>
+            <div className={`v num ${has ? (pos.markPnl >= 0 ? 'g' : 'r') : ''}`}>{fmtUsd(mcUsd(c))}</div>
+          </div>
+          <div title="What you'd actually receive selling the whole bag in one go: your own sell pushes the price down, plus the 1% fee">
+            <div className="k">If dumped now</div>
+            <div className={`v num ${has ? (pos.pnl >= 0 ? 'g' : 'r') : ''}`} style={{ opacity: has ? 0.8 : 1 }}>
+              {has ? `${fmtSol(pos.value)} (${pos.pnl >= 0 ? '+' : ''}${fmtSol(pos.pnl)})` : '—'}
             </div>
           </div>
           <div title="How much selling the whole bag at once would push the price down">
             <div className="k">Price impact</div>
             <div className={`v num ${pos.impact > 0.1 ? 'a' : ''}`}>{has ? `-${(pos.impact * 100).toFixed(1)}%` : '—'}</div>
-          </div>
-          <div>
-            <div className="k">Supply held</div>
-            <div className="v num">
-              {(pos.pct * 100).toFixed(2)}%
-              {has && <span className="d" style={{ fontWeight: 400 }}> · {Object.values(c.holders).filter((h) => h.kind === 'player' && h.tokens > 0).length}w</span>}
-            </div>
           </div>
           <div>
             <div className="k">Realized</div>
@@ -364,8 +361,8 @@ function TradePanel({ c, w }: { c: Coin; w: World }) {
 
         {has && pos.markPnl > 0 && pos.pnl < 0 && (
           <div className="hint" style={{ background: 'var(--amber-bg)', boxShadow: 'inset 0 0 0 1px rgba(240,160,32,.2)' }}>
-            The chart is above your entry, but your bag is big for this pool. Dumping it all at once moves the price{' '}
-            <span className="a num">{(pos.impact * 100).toFixed(0)}%</span>. Scale out in chunks, or wait for more buyers.
+            You're up on the chart, but your bag is big for this pool: dumping it all at once moves the price{' '}
+            <span className="a num">{(pos.impact * 100).toFixed(0)}%</span> and would lock in a loss. Scale out in chunks, or wait for more buyers.
           </div>
         )}
 

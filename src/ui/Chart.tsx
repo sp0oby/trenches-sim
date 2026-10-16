@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { getWorld } from '../game/store'
+import { playerPosition } from '../game/market'
 import { CANDLE_SEC } from '../game/constants'
 import { fmtUsd } from '../game/util'
 import type { MarkType } from '../game/types'
@@ -187,6 +188,38 @@ export default function Chart({ coinId }: { coinId?: string }) {
         ctx.fillText(spec.label, x, yy + 0.5)
       }
       ctx.textAlign = 'left'
+
+      // your average entry: above the line = green PnL, below = red
+      const pos = playerPosition(c)
+      if (pos.tokens > 0 && pos.avgEntryMc > 0) {
+        const raw = y(pos.avgEntryMc)
+        const clamped = Math.min(Math.max(raw, top + 9), top + plotH - 9)
+        const off = raw !== clamped
+        const ye = Math.round(clamped) + 0.5
+        const upE = liveClose >= pos.avgEntryMc
+        const ec = upE ? P.up : P.down
+        if (!off) {
+          ctx.strokeStyle = alpha(P.blue, 0.75)
+          ctx.setLineDash([6, 4])
+          ctx.beginPath()
+          ctx.moveTo(0, ye)
+          ctx.lineTo(plotR, ye)
+          ctx.stroke()
+          ctx.setLineDash([])
+        }
+        const pct = (liveClose / pos.avgEntryMc - 1) * 100
+        const label = `${off ? (raw < clamped ? '↑ ' : '↓ ') : ''}Your entry ${fmtUsd(pos.avgEntryMc)} · ${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`
+        ctx.font = SANSF(600, 10.5)
+        const lw = ctx.measureText(label).width + 16
+        ctx.fillStyle = alpha(P.blue, 0.16)
+        ctx.beginPath()
+        ctx.roundRect(10, ye - 9, lw, 18, 9)
+        ctx.fill()
+        ctx.fillStyle = P.blue
+        ctx.fillText(label.split(' · ')[0], 18, ye + 0.5)
+        ctx.fillStyle = ec
+        ctx.fillText(` · ${label.split(' · ')[1]}`, 18 + ctx.measureText(label.split(' · ')[0]).width, ye + 0.5)
+      }
 
       // live price line + tag
       const yl = Math.round(y(liveClose)) + 0.5

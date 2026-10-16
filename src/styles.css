@@ -232,10 +232,11 @@ input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 
 @keyframes logIn { from { opacity: 0; transform: translateX(-6px); } }
 .agentlog .prompt { grid-template-columns: auto 1fr; }
 
-.coinhead { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: var(--panel); min-width: 0; }
-.coinhead .title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.coinhead .title h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
-.coinhead .kv { display: flex; gap: 22px; margin-left: auto; }
+.coinhead { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 14px 18px; background: var(--panel); min-width: 0; }
+.coinhead > div:nth-child(2) { flex: 1 1 180px; min-width: 0; }
+.coinhead .title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.coinhead .title h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.coinhead .kv { display: flex; gap: 22px; margin-left: auto; flex-shrink: 0; }
 .kv .k { color: var(--dim); font-size: 11px; font-weight: 500; }
 .kv .v { font-weight: 600; font-size: 13px; font-family: var(--mono); letter-spacing: -0.02em; margin-top: 2px; }
 .kv .v.big { font-size: 20px; letter-spacing: -0.03em; }
